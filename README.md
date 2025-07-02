@@ -48,20 +48,40 @@ A Node.js tool that automatically discovers nearby Points of Interest (POIs) usi
 
 ## Usage
 
+### Option 1: Auto-detect your location
+
 Run the script to find POIs near your current location:
 
 ```bash
 node index.mjs
 ```
 
+### Option 2: Specify custom coordinates
+
+You can provide specific latitude and longitude coordinates:
+
+```bash
+# Search near specific coordinates
+node index.mjs --lat 40.7829 --lon -73.9654
+
+# Example: Central Park, NYC
+node index.mjs --lat 40.7829 --lon -73.9654
+
+# Example: London, UK  
+node index.mjs --lat 51.5074 --lon -0.1278
+```
+
+**Note:** Both `--lat` and `--lon` must be provided together. The script will validate that:
+- Latitude is between -90 and 90
+- Longitude is between -180 and 180
+
 ### Sample Output
 
 ```
-🌍 Getting your current location...
-📍 Found location: New York, New York, United States
-📐 Coordinates: 40.7128, -74.0060
+📍 Using coordinates from command line:
+📐 Coordinates: 40.7829, -73.9654
 🔍 Searching for POIs within 500m...
-✅ Fetched 45 POIs near New York, New York
+✅ Fetched 23 POIs near 40.7829, -73.9654
 
 [
   {
@@ -71,16 +91,11 @@ node index.mjs
     longitude: -73.9654,
     category: 'park'
   },
-  {
-    name: 'MoMA',
-    description: '11 W 53rd St, New York',
-    latitude: 40.7614,
-    longitude: -73.9776,
-    category: 'museum'
-  },
   // ... more POIs
 ]
 ```
+
+**Auto-location fallback:** If no coordinates are provided via command line, the script automatically detects your location using IP geolocation.
 
 ## Configuration
 

@@ -6,8 +6,45 @@ dotenv.config();
    Config – tweak these or pass via CLI/ENV
 ───────────────────────────────────────────── */
 const RADIUS = 500;             // metres
-const CATEGORIES = ["park", "museum", "cafe", "restaurant"]; // Google Place types
+const CATEGORIES = ["park", "museum", "cafe", "restaurant", "bar", "hotel", "gym", "library", "parking", "pharmacy", "school", "supermarket", "theatre", "zoo"]; // Google Place types
 const API_KEY = process.env.GOOGLE_PLACES_KEY;
+
+/* ─────────────────────────────────────────────
+   Parse command line arguments
+───────────────────────────────────────────── */
+function parseCommandLineArgs() {
+  const args = process.argv.slice(2);
+  let lat = null;
+  let lon = null;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--lat' && i + 1 < args.length) {
+      lat = parseFloat(args[i + 1]);
+      i++; // Skip next argument since we used it
+    } else if (args[i] === '--lon' && i + 1 < args.length) {
+      lon = parseFloat(args[i + 1]);
+      i++; // Skip next argument since we used it
+    }
+  }
+
+  // Validate coordinates if provided
+  if ((lat !== null && lon === null) || (lat === null && lon !== null)) {
+    console.error("❌ Error: Both --lat and --lon must be provided together");
+    process.exit(1);
+  }
+
+  if (lat !== null && (lat < -90 || lat > 90)) {
+    console.error("❌ Error: Latitude must be between -90 and 90");
+    process.exit(1);
+  }
+
+  if (lon !== null && (lon < -180 || lon > 180)) {
+    console.error("❌ Error: Longitude must be between -180 and 180");
+    process.exit(1);
+  }
+
+  return { latitude: lat, longitude: lon };
+}
 
 /* ─────────────────────────────────────────────
    Get current location based on IP
@@ -16,6 +53,7 @@ async function getCurrentLocation() {
   try {
     console.log("🌍 Getting your current location...");
     const { data } = await axios.get("http://ipapi.co/json/");
+    console.log(data);
     
     if (!data.latitude || !data.longitude) {
       throw new Error("Could not determine location from IP");
@@ -99,14 +137,34 @@ async function fetchNearbyPOIs(latitude, longitude) {
 ───────────────────────────────────────────── */
 async function main() {
   try {
-    // Get current location first
-    const location = await getCurrentLocation();
+    // Check for command line coordinates first
+    const cmdArgs = parseCommandLineArgs();
+    let location;
+
+    if (cmdArgs.latitude !== null && cmdArgs.longitude !== null) {
+      console.log("📍 Using coordinates from command line:");
+      console.log(`📐 Coordinates: ${cmdArgs.latitude}, ${cmdArgs.longitude}`);
+      location = {
+        latitude: cmdArgs.latitude,
+        longitude: cmdArgs.longitude,
+        city: "Custom Location",
+        region: "",
+        country: ""
+      };
+    } else {
+      // Fall back to IP-based location detection
+      location = await getCurrentLocation();
+    }
     
     // Then fetch nearby POIs
     console.log(`🔍 Searching for POIs within ${RADIUS}m...`);
     const pois = await fetchNearbyPOIs(location.latitude, location.longitude);
     
-    console.log(`✅ Fetched ${pois.length} POIs near ${location.city}, ${location.region}`);
+    const locationString = location.city && location.region ? 
+      `${location.city}, ${location.region}` : 
+      `${location.latitude}, ${location.longitude}`;
+    
+    console.log(`✅ Fetched ${pois.length} POIs near ${locationString}`);
     console.dir(pois, { depth: null });
   } catch (error) {
     console.error("❌ Error:", error.message);
