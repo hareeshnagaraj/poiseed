@@ -69,11 +69,41 @@ node index.mjs --lat 40.7829 --lon -73.9654
 
 # Example: London, UK  
 node index.mjs --lat 51.5074 --lon -0.1278
+
+# Custom search radius (default: 500m)
+node index.mjs --lat 40.7829 --lon -73.9654 --radius 1000
 ```
+
+### Option 3: Adjust search radius
+
+If IP-based location detection is inaccurate, you can increase the search radius:
+
+```bash
+# Increase radius to 1500m to compensate for location inaccuracy
+node index.mjs --radius 1500
+
+# Or use with specific coordinates
+node index.mjs --lat 40.727291 --lon -73.986654 --radius 750
+```
+
+**Parameters:**
+- `--lat` - Latitude (-90 to 90)
+- `--lon` - Longitude (-180 to 180)  
+- `--radius` - Search radius in meters (1 to 50000, default: 500)
 
 **Note:** Both `--lat` and `--lon` must be provided together. The script will validate that:
 - Latitude is between -90 and 90
 - Longitude is between -180 and 180
+- Radius is between 1 and 50000 meters
+
+## IP Geolocation Accuracy
+
+⚠️ **Important:** IP-based location detection can be inaccurate by 1-2 kilometers, especially if you're using a VPN or proxy. This can significantly affect results when searching within a 500m radius.
+
+**If your location seems wrong:**
+1. **Use exact coordinates** (recommended): `node index.mjs --lat YOUR_LAT --lon YOUR_LON`
+2. **Increase search radius**: `node index.mjs --radius 1500`
+3. **Check for VPN/proxy** that might be affecting your IP location
 
 ### Sample Output
 
