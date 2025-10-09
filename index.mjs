@@ -22,11 +22,43 @@ const POI_CATEGORIES = [
   'entertainment', // Entertainment, shows, movies, etc.
   'misc'         // Everything that doesn't fit elsewhere
 ];
+// Types that are too generic to be useful for POI validation
+const GENERIC_PLACE_TYPES = [
+  'establishment',
+  'point_of_interest',
+  'locality',
+  'political',
+  'sublocality',
+  'neighborhood',
+  'administrative_area_level_1',
+  'administrative_area_level_2',
+  'country',
+  'route',
+  'street_address',
+  'premise',
+  'colloquial_area'
+];
+// Administrative/area-like types that we always exclude from POIs
+const EXCLUDED_GLOBAL_TYPES = [
+  'locality',
+  'political',
+  'country',
+  'administrative_area_level_1',
+  'administrative_area_level_2',
+  'administrative_area_level_3',
+  'sublocality',
+  'neighborhood',
+  'colloquial_area'
+];
+// Extremely generic or meaningless names to exclude when unsupported by specific types
+const GENERIC_BAD_NAMES = ['website', 'home', 'my location', 'new york'];
 const API_KEY = process.env.GOOGLE_PLACES_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // Initialize OpenAI client (if API key is available)
 const openai = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null;
+// Global JSON output mode (suppress normal logs when true)
+let JSON_MODE = false;
 
 /* ─────────────────────────────────────────────
    AI-powered place classification
@@ -289,6 +321,40 @@ function getBestCategory(place) {
 /* ─────────────────────────────────────────────
    Simplified validation using the same rules
 ───────────────────────────────────────────── */
+// Helper guards to exclude administrative/over-generic entries
+function hasOnlyGenericTypes(types) {
+  const placeTypes = types || [];
+  if (placeTypes.length === 0) return true;
+  const nonGenericTypes = placeTypes.filter(t => !GENERIC_PLACE_TYPES.includes(t));
+  return nonGenericTypes.length === 0;
+}
+
+function containsExcludedGlobalType(types) {
+  const placeTypes = types || [];
+  return placeTypes.some(t => EXCLUDED_GLOBAL_TYPES.includes(t));
+}
+
+function isGenericName(name) {
+  const n = (name || '').trim().toLowerCase();
+  return n.length > 0 && GENERIC_BAD_NAMES.includes(n);
+}
+
+function isAddressLike(name) {
+  const n = (name || '').toLowerCase();
+  // Looks like an address if it has a street number and a street designator
+  const hasNumber = /\b\d{1,6}\b/.test(n);
+  const hasStreetWord = /(street|st\.?|ave\.?|avenue|blvd\.?|boulevard|rd\.?|road|dr\.?|drive|ln\.?|lane|ct\.?|court|pl\.?|place|pkwy\.?|parkway|suite|ste\.?|apt\.?)/.test(n);
+  return hasNumber && hasStreetWord;
+}
+
+function isGloballyIneligible(place) {
+  const placeTypes = place.types || [];
+  const placeName = place.name || '';
+  if (containsExcludedGlobalType(placeTypes)) return true;
+  if (hasOnlyGenericTypes(placeTypes) && (isGenericName(placeName) || isAddressLike(placeName))) return true;
+  return false;
+}
+
 function validatePlace(place, category) {
   const rules = CLASSIFICATION_RULES[category];
   if (!rules) return false;
@@ -296,6 +362,9 @@ function validatePlace(place, category) {
   const placeName = place.name.toLowerCase();
   const placeTypes = place.types || [];
   
+  // Global exclusions: administrative areas, over-generic entries
+  if (isGloballyIneligible(place)) return false;
+
   // Check exclusions first
   if (rules.excludeTypes?.some(type => placeTypes.includes(type))) return false;
   if (rules.excludeKeywords?.some(keyword => placeName.includes(keyword))) return false;
@@ -310,6 +379,13 @@ function validatePlace(place, category) {
     return true;
   }
   
+  // Disallow misc if the entry is too generic or address-like with no specific signals
+  if (category === 'misc') {
+    if (hasOnlyGenericTypes(placeTypes) || isGenericName(place.name) || isAddressLike(place.name)) {
+      return false;
+    }
+  }
+
   return hasMatchingType || hasMatchingKeyword || category === 'misc';
 }
 
@@ -331,9 +407,9 @@ async function processPlaces(rawPlaces, filterCategories = [], useAI = false) {
     let bestCategory, isValidated, confidence, reasoning;
     
     if (aiResult && aiResult.isValid) {
-      // Use AI classification
+      // Use AI classification but still validate against our rules
       bestCategory = aiResult.category;
-      isValidated = aiResult.isValid;
+      isValidated = validatePlace(place, bestCategory);
       confidence = aiResult.confidence;
       reasoning = aiResult.reasoning;
     } else {
@@ -367,7 +443,9 @@ async function processPlaces(rawPlaces, filterCategories = [], useAI = false) {
   // Apply validation filter
   const validated = processed.filter(place => {
     const isTargetCategory = POI_CATEGORIES.includes(place.category);
-    return place.isValidated && isTargetCategory;
+    // Global eligibility guard (safety net)
+    const eligible = !isGloballyIneligible(place._original || { name: place.name, types: place.types });
+    return place.isValidated && isTargetCategory && eligible;
   });
 
   // Apply category filter if specified
@@ -674,6 +752,13 @@ async function main() {
   try {
     // Check for command line coordinates first
     const cmdArgs = parseCommandLineArgs();
+    if (cmdArgs.showJson) {
+      JSON_MODE = true;
+      // Suppress normal stdout logs so only JSON is emitted
+      console.log = (..._args) => {};
+      console.warn = (..._args) => {};
+      console.error = (..._args) => {};
+    }
     let location;
 
     if (cmdArgs.latitude !== null && cmdArgs.longitude !== null) {
@@ -743,9 +828,8 @@ async function main() {
     });
     
     if (cmdArgs.showJson) {
-      // JSON output
-      console.log(`\n✅ Found ${cleanPois.length} validated POIs near ${locationString}`);
-      console.dir(cleanPois, { depth: null });
+      // Emit ONLY valid JSON to stdout
+      process.stdout.write(JSON.stringify(cleanPois, null, 2));
     } else {
       // Formatted output
       displayResults(cleanPois, cmdArgs.showDetails);
@@ -760,7 +844,16 @@ async function main() {
       console.log(`💡 Use --ai flag for AI-powered classification (requires OpenAI API key)`);
     }
   } catch (error) {
-    console.error("❌ Error:", error.message);
+    if (JSON_MODE) {
+      // Emit valid JSON even on error
+      try {
+        process.stdout.write(JSON.stringify([], null, 2));
+      } catch (_e) {
+        // no-op
+      }
+    } else {
+      console.error("❌ Error:", error.message);
+    }
   }
 }
 
