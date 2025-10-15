@@ -617,7 +617,10 @@ async function processPlaces(rawPlaces, filterCategories = [], useAI = false) {
    Parse command line arguments
 ───────────────────────────────────────────── */
 function parseCommandLineArgs() {
-  const args = process.argv.slice(2);
+  const args = process.argv.slice(2).map(arg => {
+    // Normalize em-dashes and en-dashes to regular dashes (common copy-paste issue)
+    return arg.replace(/^[—–]+/, '--');
+  });
   let lat = null;
   let lon = null;
   let radius = RADIUS; // Default radius

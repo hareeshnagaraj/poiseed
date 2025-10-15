@@ -48,7 +48,60 @@ A Node.js tool that automatically discovers nearby Points of Interest (POIs) usi
 
 ## Usage
 
-### Option 1: Auto-detect your location
+### 🚀 Quick Start: Auto-Fetch & Ingest (Recommended)
+
+The fastest way to fetch and automatically upload POIs to your server in one command:
+
+```bash
+# Fetch and ingest POIs at specific coordinates
+node auto-ingest.mjs --lat 40.7829 --lon -73.9654
+
+# With custom radius and categories
+node auto-ingest.mjs --lat 40.7829 --lon -73.9654 --radius 1000 --categories restaurant,cafe
+
+# Collect a specific number of POIs
+node auto-ingest.mjs --lat 40.7829 --lon -73.9654 --target 500
+
+# With AI-powered classification
+node auto-ingest.mjs --lat 40.7829 --lon -73.9654 --ai --categories restaurant,bar
+
+# Just fetch and save (skip ingestion)
+node auto-ingest.mjs --lat 40.7829 --lon -73.9654 --no-ingest
+
+# Delete the JSON file after ingestion (files are kept by default)
+node auto-ingest.mjs --lat 40.7829 --lon -73.9654 --delete-file
+```
+
+**Environment Variables:**
+- `ADMIN_TOKEN` - Required for ingestion (admin API token)
+- `BASE_URL` - Optional API base URL (default: http://localhost:3000)
+- `GOOGLE_PLACES_KEY` - Required for fetching POIs
+- `OPENAI_API_KEY` - Optional, for AI classification (with `--ai` flag)
+
+**What it does:**
+1. Fetches POIs from Google Places API
+2. Saves to a timestamped file (e.g., `auto-2025-10-15T14-30-00.json`)
+3. Automatically uploads to your server
+4. Keeps the file for your records (unless `--delete-file` is used)
+
+**Available Flags:**
+- `--lat <number>` - Latitude coordinate
+- `--lon <number>` - Longitude coordinate
+- `--radius <meters>` - Search radius (default: 500)
+- `--target <number>` - Collect specific number of POIs using spiral search
+- `--categories <list>` - Filter by categories (e.g., restaurant,cafe,bar)
+- `--ai` - Use AI-powered classification (requires OPENAI_API_KEY)
+- `--baseUrl <url>` - API server URL (default: http://localhost:3000)
+- `--batch <number>` - Batch size for ingestion (default: 100)
+- `--no-ingest` - Only fetch and save, skip server upload
+- `--delete-file` - Delete JSON file after ingestion (default: keep)
+- `--dry-run` - Fetch and validate but don't actually POST to server
+
+---
+
+### Manual Workflow
+
+#### Option 1: Fetch POIs Only
 
 Run the script to find POIs near your current location:
 
@@ -56,7 +109,7 @@ Run the script to find POIs near your current location:
 node index.mjs
 ```
 
-### Option 2: Specify custom coordinates
+#### Option 2: Specify custom coordinates
 
 You can provide specific latitude and longitude coordinates:
 
@@ -74,7 +127,7 @@ node index.mjs --lat 51.5074 --lon -0.1278
 node index.mjs --lat 40.7829 --lon -73.9654 --radius 1000
 ```
 
-### Option 3: Adjust search radius
+#### Option 3: Adjust search radius
 
 If IP-based location detection is inaccurate, you can increase the search radius:
 
@@ -84,6 +137,15 @@ node index.mjs --radius 1500
 
 # Or use with specific coordinates
 node index.mjs --lat 40.727291 --lon -73.986654 --radius 750
+```
+
+#### Option 4: Manual Ingestion
+
+After fetching POIs to a JSON file, you can manually ingest them:
+
+```bash
+# Ingest POIs from a file
+node ingest_pois.mjs --file tmp1.json --baseUrl http://localhost:3000 --batch 100
 ```
 
 **Parameters:**
