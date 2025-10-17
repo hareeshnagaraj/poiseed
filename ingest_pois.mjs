@@ -138,6 +138,7 @@ async function main() {
   }
 
   console.log(`🔗 Target: ${baseUrl}  |  File: ${filePath}  |  Batch: ${batchSize}${dryRun ? "  |  DRY-RUN" : ""}`);
+  console.log(`🔑 Admin token: ${adminToken.substring(0, 8)}...${adminToken.substring(adminToken.length - 4)} (${adminToken.length} chars)`);
 
   try {
     const payloads = await readPois(filePath);
