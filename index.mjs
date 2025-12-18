@@ -21,6 +21,7 @@ const POI_CATEGORIES = [
   'gym',         // Fitness centers, sports facilities
   'venue',       // Venues, events, concerts, etc.
   'entertainment', // Entertainment, shows, movies, etc.
+  'health',      // Medical facilities, doctors, hospitals, clinics
   'misc'         // Everything that doesn't fit elsewhere
 ];
 // Types that are too generic to be useful for POI validation
@@ -310,6 +311,12 @@ const CLASSIFICATION_RULES = {
   beach: { priority: 2, types: ['natural_feature'], keywords: ['beach', 'shore', 'waterfront', 'marina', 'harbor', 'pier', 'wharf', 'dock'], excludeKeywords: [] },
   library: { priority: 2, types: ['library', 'school', 'university'], keywords: ['library', 'school', 'university', 'college', 'academy', 'institute'], excludeKeywords: [] },
   gym: { priority: 2, types: ['gym', 'spa'], keywords: ['gym', 'fitness', 'yoga', 'pilates', 'crossfit', 'spa', 'wellness'], excludeKeywords: [] },
+  health: { 
+    priority: 2, 
+    types: ['doctor', 'hospital', 'dentist', 'pharmacy', 'physiotherapist', 'health', 'dentistry', 'medical_lab', 'veterinary_care'], 
+    keywords: ['doctor', 'dr.', ' md', 'hospital', 'medical', 'clinic', 'health', 'dentist', 'dental', 'physician', 'surgery', 'care center'], 
+    excludeKeywords: [] 
+  },
   misc: { priority: 1, types: [], keywords: [], excludeKeywords: [] }
 };
 
@@ -922,6 +929,7 @@ function getCategoryEmoji(category) {
     gym: '💪',
     venue: '🏟️',
     entertainment: '🎬',
+    health: '🏥',
     misc: '📍'
   };
   

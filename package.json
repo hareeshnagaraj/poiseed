@@ -2,13 +2,24 @@
   "name": "poiseed",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "collect": "node index.mjs",
+    "collect:ai": "node index.mjs --ai",
+    "collect:categories": "node index.mjs",
+    "ingest": "node ingest_pois.mjs",
+    "seed": "node poiseed.mjs seed",
+    "seed:city": "node poiseed.mjs seed",
+    "seed:restaurants": "node index.mjs --ai --json --categories restaurant,cafe --out temp_restaurants.json && node ingest_pois.mjs --file temp_restaurants.json",
+    "seed:shopping": "node index.mjs --ai --json --categories shopping,entertainment --out temp_shopping.json && node ingest_pois.mjs --file temp_shopping.json",
+    "seed:nightlife": "node index.mjs --ai --json --categories bar,venue --out temp_nightlife.json && node ingest_pois.mjs --file temp_nightlife.json",
+    "seed:food": "node index.mjs --ai --json --categories restaurant,cafe,bar --out temp_food.json && node ingest_pois.mjs --file temp_food.json",
+    "poiseed": "node poiseed.mjs"
   },
-  "keywords": [],
+  "keywords": ["poi", "places", "google-places", "geolocation", "seed"],
   "author": "",
-  "license": "ISC",
-  "description": "",
+  "license": "MIT",
+  "description": "Intelligent POI collector with AI-powered categorization for location-based applications",
   "dependencies": {
     "axios": "^1.10.0",
     "dotenv": "^16.5.0",
